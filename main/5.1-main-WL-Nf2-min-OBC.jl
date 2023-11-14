@@ -19,7 +19,7 @@ Base.@kwdef mutable struct Results
     ders    = Vector{Vector{Float64}}()
 end
 
-# -L 2 -b 5.555 --mass 0.6 --BC OpenBC --nsteps 7 -n 10000 --wdir /home/david/scratch/projects/phd/12-Contour-deformation/ensembles/
+# -A 2 --enspath /home/david/scratch/projects/phd/12-Contour-deformation/ensembles/run-TU1Nf2-b5.555-m0.2-L6-BCOpenBC-nc10000.bdio --wdir /home/david/scratch/projects/phd/12-Contour-deformation/analysis/
 function parse_commandline()
     s = ArgParseSettings()
 
@@ -151,7 +151,7 @@ ders = zeros(length(delta_wloop_indices(A)))
 res = Results()
 update_results!(res, real.([wilson_loop(A, ens[i])  for i in 1001:length(ens)]), delta, ders)
 
-for i in 1:100
+for i in 1:1
     print(i,"\r")
     ders .= compute_ders_obs(ens[1:10:1000], delta, mask, A)
     delta .-= (i > 10 ? 1.0 : 0.1) * ders
