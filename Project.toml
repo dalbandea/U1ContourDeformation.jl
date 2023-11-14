@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [deps]
 ADerrors = "5e92007d-7bf1-471c-8ceb-4591b8b567a9"
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 BDIO = "375f315e-f2c4-11e9-2ef9-134f02f79e27"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FormalSeries = "a55ae9b5-0907-4af6-81ab-c6ed2f8e0777"
