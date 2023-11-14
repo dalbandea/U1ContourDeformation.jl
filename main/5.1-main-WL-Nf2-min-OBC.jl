@@ -7,6 +7,7 @@ using Statistics
 using ForwardDiff
 using ADerrors
 using DelimitedFiles
+using ArgParse
 
 Base.@kwdef mutable struct Results
     means   = Vector{Float64}()
@@ -103,7 +104,7 @@ function compute_var(ensemble, delta, mask, A)
         detD_undef = det(D)
         Umodel.U .*= exp.(-deltas)
         S_def = complex_action(Umodel)
-        obs = W1(Umodel)
+        obs = wilson_loop(A,Umodel)
         compute_Dwsr!(D, x1, x2, xtmp, Umodel)
         # maxD_def = maximum(real.(D))
         detD_def = det(D)
