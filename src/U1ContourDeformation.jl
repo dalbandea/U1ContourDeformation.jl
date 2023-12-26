@@ -1,6 +1,6 @@
 module U1ContourDeformation
 
-import LFTSampling
+using LFTSampling
 using LFTU1
 import BDIO
 import ADerrors
@@ -9,6 +9,7 @@ import FormalSeries
 import ReverseDiff
 import Random
 import SpecialFunctions: besseli
+import LinearAlgebra
 
 import Statistics: var
 """
@@ -291,10 +292,123 @@ end
 export build_minimal_deltas
 
 
+"""
+    builtup_minimal_delta!(mask, A, delta, delta0 = 0; dims = 1)
+
+returns cooked delta field that have A plaquettes with the given value of `delta`
+"""
+function builtup_minimal_delta!(mask, A, delta, delta0 = 0; dims = 1)
+    indices = delta_wloop_indices(A)
+    mask .= 0.0
+
+    for index in indices
+        if index[end] == 2
+            mask[index...] = + delta0 + (index[1]-1) * delta
+        end
+        if dims == 2
+            if index[end] == 1
+                mask[index...] = -delta0 - (index[2]-1) * delta
+            end
+            mask[index...] *= 0.5
+        end
+    end
+    return nothing
+end
+export builtup_minimal_delta!
+
+
+
 function ana_wilson_loop(A, beta)
     return (besseli(1, beta)/besseli(0, beta))^A
 end
 export ana_wilson_loop
+
+function compute_Dwsr!(D, x1, x2, xtmp, xmodel)
+    D .= 0.0
+    x1 .= 0.0
+    x2 .= 0.0
+    xtmp .= 0.0
+    for i in eachindex(x1)
+        x1[i] = 1.0
+        gamm5Dw_sqr_msq!(x2, xtmp, x1, xmodel)
+        for j in eachindex(xtmp)
+            D[j,i] = x2[j]
+        end
+        x1[i] = 0.0
+    end
+end
+function compute_Dwsr(xmodel)
+    x1 = similar(copy(xmodel.U))
+    x2 = similar(x1)
+    xtmp = similar(x1)
+    D = similar(x1, prod(size(x1)), prod(size(x1)))
+    compute_Dwsr!(D, x1, x2, xtmp, xmodel)
+    return D
+end
+export compute_Dwsr!, compute_Dwsr
+
+function compute_Dwsr_wog5!(D, x1, x2, xtmp, xmodel)
+    D .= 0.0
+    x1 .= 0.0
+    x2 .= 0.0
+    xtmp .= 0.0
+    for i in eachindex(x1)
+        x1[i] = 1.0
+        Dw_sqr_msq!(x2, xtmp, x1, xmodel)
+        for j in eachindex(xtmp)
+            D[j,i] = x2[j]
+        end
+        x1[i] = 0.0
+    end
+end
+function compute_Dwsr_wog5(xmodel)
+    x1 = similar(copy(xmodel.U))
+    x2 = similar(x1)
+    xtmp = similar(x1)
+    D = similar(x1, prod(size(x1)), prod(size(x1)))
+    compute_Dwsr_wog5!(D, x1, x2, xtmp, xmodel)
+    return D
+end
+export compute_Dwsr_wog5!, compute_Dwsr_wog5
+
+
+function compute_Dwsr_rat!(D, x1, x2, xtmp, sws, defmodel, undefmodel)
+    D .= 0.0
+    x1 .= 0.0
+    x2 .= 0.0
+    xtmp .= 0.0
+    for i in eachindex(x1)
+        x1[i] = 1.0
+        gamm5Dw_sqr_msq!(x2, xtmp, x1, defmodel)
+        xtmp .= x2
+        invc = invert!(x2, gamm5Dw_sqr_msq!, xtmp, sws, undefmodel)
+        for j in eachindex(xtmp)
+            D[j,i] = x2[j]
+        end
+        x1[i] = 0.0
+    end
+end
+export compute_Dwsr_rat!
+
+function st_g5Dw_sr_ratio(nsr, Uundef, Udef)
+    x1 = similar(eltype(Udef))
+    x2 = similar(eltype(Udef))
+    xtmp = similar(eltype(Udef))
+    sws = CG(10000, 1e-16, Udef.U);
+    return st_g5Dw_sr_ratio(nsr, Uundef, Udef, x1, x2, xtmp, sws)
+end
+function st_g5Dw_sr_ratio(nsr, Uundef, Udef, x1, x2, xtmp, sws)
+    eta = randn(ComplexF64, size(Uundef.U))
+    res = []
+    for i in 1:nsr
+        eta .= randn(ComplexF64, size(Uundef.U))
+        gamm5Dw_sqr_msq!(x1, xtmp, eta, Udef)
+        invert!(x2, gamm5Dw_sqr_msq!, x1, sws, Uundef)
+        push!(res, exp(-LinearAlgebra.dot(eta, x2)+LinearAlgebra.dot(eta,eta)))
+    end
+    return res
+end
+export st_g5Dw_sr_ratio
 
 # import Base: zero, zeros
 # function Base.zero(x::Type{ReverseDiff.TrackedReal{Float64, Float64, Nothing}})

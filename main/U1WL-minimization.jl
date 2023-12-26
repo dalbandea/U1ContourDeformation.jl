@@ -217,8 +217,10 @@ a2 = action(model)
 
 fname = "/home/david/git/dalbandea/phd/codes/6-LFTs/LFTModels/LFTU1.jl/run-b5.555-L64-nc10000.bdio"
 
+fname = "/home/david/git/dalbandea/phd/codes/6-LFTs/LFTModels/LFTU1.jl/run-b5.555-L2-nc10000.bdio"
+
 beta = 5.555
-lsize = 64
+lsize = 2
 model = U1Quenched(Float64,
                    beta = beta,
                    iL = (lsize, lsize),
@@ -238,15 +240,15 @@ function W1(model, i1, i2)
 end
 
 function def_1link!(model::LFTU1.U1, delta)
-    model.U[20,20,1] *= exp(im*delta)
+    model.U[1,1,1] *= exp(im*delta[1])
     return nothing
 end
 
 function compute_var(ensemble, delta)
     Q = Vector{Any}(undef, 10000)
     for i in eachindex(ensemble)
-        println(i)
         U = copy(ens[i].U) .* exp.(im*delta) .* exp.(-im*delta)
+        println(i)
         # println("A")
         model = U1Quenched(Float64,
                            # FormalSeries.Series{ComplexF64,2},
@@ -262,15 +264,18 @@ function compute_var(ensemble, delta)
         # println("C")
         S_def = action(model)
         # println("D")
-        obs = W1(model, 20, 20)
+        obs = W1(model, 1, 1)
         Q[i] = exp(-S_undef + S_def) * obs
     end
+    println(mean(Q))
     return var(real.(Q))
 end
 
 using ForwardDiff
 
-ForwardDiff.gradient(x -> compute_var(ens, x), [-0.1])
+ForwardDiff.gradient(x -> compute_var(ens, x), [-0.2])
+
+compute_var(ens, -0.2)
 
 using Zygote
 
